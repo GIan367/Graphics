@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WebGL Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="webgl.css" type="text/css">
+
+    <script src="OBJLoader.js"></script>
+
+    <script type="text/JavaScript" src="webgl-demo.js">
+      
+    </script>
+
+    <script type="text/javascript" src="Simba.objjs"></script>
+
+
+    <script id="vs" type="not-js">
+      attribute vec3 vPosition;
+      attribute vec3 vNormal;
+      //attribute vec2 vTexCoord;
+      //varying vec2 fTexCoord;
+      varying vec3 fNormal;
+      uniform mat4 uMVP;
+      uniform mat4 uMV;
+      uniform mat4 uP;
+      uniform mat4 normalMatrix;
+      varying vec3 fPosition;
+
+      void main(void) {
+      
+        fNormal = normalize(mat3(normalMatrix) * vNormal);
+        vec4 pos = uMV * vec4(vPosition, 1.0);
+        fPosition = pos.xyz;
+       
+        gl_Position = uP * vec4(pos);
+        //fTexCoord = vTexCoord;
+      }
+    </script>
+
+    <script id="fs" type="not-js">
+      precision highp float;
+      varying vec3 fNormal;
+      varying vec3 fPosition;
+
+      const float specular_coeff  = 1.0;
+      const float specular_exp    = 32.0;
+      const vec3  light_direction = vec3(1.0,1.0,1.0);
+      const vec3  light_color     = vec3(1.0,1.0,1.0);
+      //varying vec2 fTexCoord;
+      //uniform sampler2D texSampler;
+
+      void main(void) {
+        
+        vec3 l = normalize(light_direction);
+  vec3 n = normalize(fNormal);
+  vec3 e = normalize(-fPosition);
+  vec3 h = normalize (e+l);
+
+  vec3 specular_color = specular_coeff * pow(max(0.0,dot(n,h)),specular_exp) * light_color;
+        vec3 dir = vec3(0,1,0);
+        //vec3 color = vec3(0.8568,0.6039,0.3196);
+        float diffuse = dot(fNormal, dir);
+        //gl_FragColor = vec4(diffuse * color, 1.0);
+
+        gl_FragColor = vec4(fNormal, 1.0);
+  vec3 ray = fPosition;
+  ray = normalize(fPosition);
+  vec3 planeVector = cross(ray, fNormal);
+  float sinTheta1 = length(planeVector);
+  const float IOR = 1.3;
+  float sinTheta2 = sinTheta1 / IOR;
+  
+  vec3 offsetVector = cross(fNormal, planeVector);
+  float theta2 = asin(sinTheta2);
+  float lengthOfOffsetVector = tan(theta2);
+  offsetVector = lengthOfOffsetVector * offsetVector;
+  vec3 refractedRay = offsetVector - fNormal;
+  
+  
+  const float D = 40.0;
+  
+  //similar triangles
+  vec3 deltaRay = refractedRay * ((D - fPosition.z)/(refractedRay.z));
+  
+  vec3 checkerBoardColor = vec3(0.7568,0.6039,0.4196);
+  vec3 hitPoint = deltaRay + fPosition;
+   vec4 test = vec4( mod(floor(hitPoint.x/20.0) + floor(hitPoint.y/20.0), 2.0) * checkerBoardColor , 1.0)       ;
+       gl_FragColor = vec4(test.x+.2,test.y+.2,test.z+.2,1.0);
+       //gl_FragColor = vec4(fNormal,1.0);
+      }
+    </script>
+  </head>
+
+  <body onload="start()">
+    
+    <canvas id="glcanvas" width="900" height="700">
+      Your browser doesn't appear to support the <code>&lt;canvas&gt;</code> element.
+    </canvas>
+    <input id="slider1" type="range" min="-100" max="100" />
+   
+    <script src="http://graphics.cs.wisc.edu/JS/twgl-full.min.js"></script>
+  </body>
+</html>
